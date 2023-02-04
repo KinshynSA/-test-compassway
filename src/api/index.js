@@ -19,10 +19,9 @@ export async function getTorExitNodeList({
 
 export async function getVisitopIp(){
     let res;
-    await fetch('http://api.ipstack.com/check?access_key=80f5e44de93987e5191e75a391c0f729')
+    await fetch('https://api.ipify.org?format=json')
     .then(response => response.json())
     .then(result => res = result)
     .catch(error => console.log('error',error))
-
     return res.ip;
 }
