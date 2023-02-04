@@ -23,7 +23,7 @@ animation: var(--showOpacity);
 `;
 
 
-export default function Test(){
+export default function HomePage(){
     const [ip, setIp] = useState();
     const [lastRequestNodesTime, setLastRequestNodesTime] = useState();
     const [torExitNodeList, setTorExitNodeList] = useState([]);
