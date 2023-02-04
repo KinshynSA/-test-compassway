@@ -12,6 +12,7 @@ export async function getTorExitNodeList({
     .then(result => {
         res = result;
     })
+    .catch(error => console.log('error',error))
 
     return res;
 }
@@ -20,7 +21,8 @@ export async function getVisitopIp(){
     let res;
     await fetch('https://ipapi.co/json/')
     .then(response => response.json())
-    .then(result => res = result);
+    .then(result => res = result)
+    .catch(error => console.log('error',error))
 
     return res.ip;
 }

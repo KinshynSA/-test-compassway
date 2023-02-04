@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import styled from "styled-components";
-import { Section, Button } from "../../components";
+import { Section, Button, Preloader } from "../../components";
 import { getTorExitNodeList, getVisitopIp } from "../../api";
 
 
@@ -29,6 +29,7 @@ export default function Test(){
     const [torExitNodeList, setTorExitNodeList] = useState([]);
     const [isTorBroswer, setIsTorBrowser] = useState();
     const [result, setResult] = useState(false);
+    const [preloader, setPreloader] = useState();
 
     function checkNodes(){
         if(torExitNodeList.length){
@@ -40,6 +41,9 @@ export default function Test(){
 
     async function getFullTorExitNodeList(){
         if(checkNodes()) return;
+        
+        setPreloader(true);
+
 
         let totalNodesAmount = 0;
         let offset = 0;
@@ -50,7 +54,7 @@ export default function Test(){
             const res = await getTorExitNodeList({
                 batchSize,
                 offset,
-            })
+            });
     
             nodes = nodes.concat(res.nodes);
             totalNodesAmount = res.total;
@@ -86,6 +90,7 @@ export default function Test(){
     useEffect(() => {
         if(torExitNodeList.length && ip){
             setIsTorBrowser(isIpInNodeList());
+            setPreloader(false);    
         }
     }, [torExitNodeList,ip])
 
@@ -99,6 +104,8 @@ export default function Test(){
                 <Result>{result && (`Вы зашли на страницу ${isTorBroswer ? '' : 'НЕ'} через Tor browser`)}</Result>
                 <Button onClick={handleButtonClick}>Нажми меня</Button>
             </Block>
+
+            {preloader && <Preloader />}
         </SectionStyled>
     )
 }
