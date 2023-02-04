@@ -70,6 +70,7 @@ export default function Test(){
     function isIpInNodeList(){
         let result = false;
         for(let node in torExitNodeList){
+            console.log(ip, node.ip, node.ip === ip)
             if(node.ip === ip){
                 result = true;
                 break;
