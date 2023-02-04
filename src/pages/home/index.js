@@ -46,8 +46,6 @@ export default function Test(){
         const batchSize = 1000;
         let nodes = [];
 
-        getPartTorExitNodeList();
-
         async function getPartTorExitNodeList(){
             const res = await getTorExitNodeList({
                 batchSize,
@@ -65,12 +63,13 @@ export default function Test(){
                 setLastRequestNodesTime(Date.now());
             }
         }
+
+        return await getPartTorExitNodeList();
     }
 
     function isIpInNodeList(){
         let result = false;
-        for(let node in torExitNodeList){
-            console.log(ip, node.ip, node.ip === ip)
+        for(let node of torExitNodeList){
             if(node.ip === ip){
                 result = true;
                 break;
@@ -82,9 +81,13 @@ export default function Test(){
     async function handleButtonClick(){
         getFullTorExitNodeList();
         setIp(await getVisitopIp());
-
-        setIsTorBrowser(isIpInNodeList());
     }
+
+    useEffect(() => {
+        if(torExitNodeList.length && ip){
+            setIsTorBrowser(isIpInNodeList());
+        }
+    }, [torExitNodeList,ip])
 
     useEffect(() => {
         if(isTorBroswer !== undefined) setResult(true);
