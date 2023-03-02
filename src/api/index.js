@@ -8,7 +8,7 @@ export async function getTorExitNodes({
     batchSize,
     offset
 }){
-    const key = 'bdc_644da0305f5d4e648245fba7e7fc19c2';
+    const key = 'bdc_1a0680a123f74345be1037241793fcc1';
     return await fetch(`https://api.bigdatacloud.net/data/tor-exit-nodes-list?key=${key}&batchSize=${batchSize}&offset=${offset}`, {
         method: 'GET',
     })

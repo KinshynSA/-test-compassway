@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import styled from "styled-components";
 import { Section, Button, LoadingIndicator } from "../../components";
 import { getTorExitNodes, getMyIp } from "../../api";
@@ -6,6 +6,8 @@ import { requestExitTorNodesInterval } from "../../constants";
 
 
 const SectionStyled = styled(Section)`
+min-width: 100vw;
+min-height: 100vh;
 background-color: var(--gray800);
 color: var(--white);
 `;
@@ -48,7 +50,7 @@ export default function HomePage(){
     }
 
     async function getFullTorExitNodes(){
-        if(isHaveActualNodes()) return torExitNodes;
+        if(isHaveActualNodes()) return;
 
         let totalNodesAmount = 0;
         let offset = 0;
@@ -56,6 +58,7 @@ export default function HomePage(){
         let nodes = [];
 
         async function getPartTorExitNodes(){
+            setTorExitNodesError(null)
             const [error, res] = await getTorExitNodes({
                 batchSize,
                 offset,
@@ -63,73 +66,67 @@ export default function HomePage(){
 
             if(error){
                 setTorExitNodesError(`tor nodes load error: ${error.message}`)
-                throw new Error(error)
             } else {
-                setTorExitNodesError(null)
-
                 nodes = nodes.concat(res.nodes);
                 totalNodesAmount = res.total;
                 offset += batchSize;
         
                 if(nodes.length < totalNodesAmount){
-                    return await getPartTorExitNodes();
+                    getPartTorExitNodes();
                 } else {
                     setTorExitNodes(nodes);
                     setLastRequestNodesTime(Date.now());
-                    return nodes;
                 }
             }
         }
 
-        return await getPartTorExitNodes();
+        getPartTorExitNodes();
     }
 
-    async function getMyIpWrapper(){
-        const [error, myIp] = await getMyIp();
-        if(error){
-            setMyIpError(`my ip info load error: ${error.message}`)
-            throw new Error(error)
-        } else {
-            setMyIpError(null);
-
-            setMyIp(myIp);
-        }
-    }
-
-    function isMyIpInNodeList(nodes){
-        return !!nodes.find(({ip} = {}) => ip === myIp);
+    function isMyIpInNodeList(){
+        return !!torExitNodes.find(({ip} = {}) => ip === myIp);
     }
 
     async function handleButtonClick(){
         setIsLoading(true);
-        setResult(false);
 
-        Promise.allSettled([
-            getFullTorExitNodes(),
-            getMyIpWrapper()
-        ]).then((res) => {
-            setIsTorBrowser(isMyIpInNodeList(res[0].value));
-            setResult(true);
-        }).catch(error => {
-            console.log('error',error)
-            setResult(false);
-        }).finally(() => {
-            setIsLoading(false);    
-        })
+        getFullTorExitNodes()
+
+        const [error, myIp] = await getMyIp();
+        if(error){
+            setMyIpError(`my ip info load error: ${error.message}`)
+        } else {
+            setMyIpError(null);
+            setMyIp(myIp)
+        }
+
+        setIsLoading(false);  
     };
+
+    useEffect(() => {
+        if(myIp && torExitNodes.length){
+            setIsTorBrowser(isMyIpInNodeList());
+        }
+    }, [myIp, torExitNodes])
+
+    useEffect(() => {
+        if(isTorBrowser !== undefined) setResult(true);
+    }, [isTorBrowser])
 
     return (
         <SectionStyled>
-            <Block>
-                <Result>{result && (`Вы зашли на страницу ${isTorBrowser ? '' : 'НЕ'} через Tor browser`)}</Result>
-                <Button onClick={handleButtonClick}>Нажми меня</Button>
-                <ErrorsBlock>
-                    {myIpError && <Error>{myIpError}</Error>}
-                    {torExitNodesError && <Error>{torExitNodesError}</Error>}
-                </ErrorsBlock>
-            </Block>
-
-            {isLoading && <LoadingIndicator />}
+            {isLoading ? (
+                <LoadingIndicator />
+            ) : (
+                <Block>
+                    <Result>{result && (`Вы зашли на страницу ${isTorBrowser ? '' : 'НЕ'} через Tor browser`)}</Result>
+                    <Button onClick={handleButtonClick}>Нажми меня</Button>
+                    <ErrorsBlock>
+                        {myIpError && <Error>{myIpError}</Error>}
+                        {torExitNodesError && <Error>{torExitNodesError}</Error>}
+                    </ErrorsBlock>
+                </Block>
+            )}
         </SectionStyled>
     )
 }
