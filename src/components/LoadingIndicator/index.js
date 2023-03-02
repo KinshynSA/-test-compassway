@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import styled from "styled-components";
 
 
@@ -47,7 +47,7 @@ animation: lineInner 1s infinite;
 `
 
 
-export default function Preloader(props){
+export default function LoadingIndicator(){
     return (
         <Block>
             <Content>

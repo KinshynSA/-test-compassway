@@ -1,9 +1,9 @@
 import Section from "./Section";
 import Button from "./Button";
-import Preloader from "./Preloader";
+import LoadingIndicator from "./LoadingIndicator";
 
 export {
     Section,
     Button,
-    Preloader,
+    LoadingIndicator,
 }

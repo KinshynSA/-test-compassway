@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import styled from "styled-components";
-import { Section, Button, Preloader } from "../../components";
-import { getTorExitNodeList, getVisitopIp } from "../../api";
+import { Section, Button, LoadingIndicator } from "../../components";
+import { getTorExitNodes, getMyIp } from "../../api";
+import { requestExitTorNodesInterval } from "../../constants";
 
 
 const SectionStyled = styled(Section)`
@@ -13,7 +14,6 @@ display: flex;
 flex-direction: column;
 justify-content: center;
 align-items: center;
-width: 100%;
 min-height: 100vh;
 `
 const Result = styled.div`
@@ -21,91 +21,114 @@ margin-bottom: 20px;
 text-align: center;
 animation: var(--showOpacity);
 `;
+const ErrorsBlock = styled.div``
+const Error = styled.div`
+margin-top: 20px;
+color: var(--red);
+animation: var(--showOpacity);
+`
 
 
 export default function HomePage(){
-    const [ip, setIp] = useState();
+    const [myIp, setMyIp] = useState();
+    const [myIpError, setMyIpError] = useState();
     const [lastRequestNodesTime, setLastRequestNodesTime] = useState();
-    const [torExitNodeList, setTorExitNodeList] = useState([]);
-    const [isTorBroswer, setIsTorBrowser] = useState();
+    const [torExitNodes, setTorExitNodes] = useState([]);
+    const [torExitNodesError, setTorExitNodesError] = useState();
+    const [isTorBrowser, setIsTorBrowser] = useState();
     const [result, setResult] = useState(false);
-    const [preloader, setPreloader] = useState();
+    const [isLoading, setIsLoading] = useState();
 
-    function checkNodes(){
-        if(torExitNodeList.length){
-            if((Date.now() - lastRequestNodesTime) < (1000 * 60 * 60 + 1)) return true;
+    function isHaveActualNodes(){
+        if(torExitNodes.length){
+            if((Date.now() - lastRequestNodesTime) < requestExitTorNodesInterval) return true;
         }
 
         return false;
     }
 
-    async function getFullTorExitNodeList(){
-        if(checkNodes()) return;
-        
-        setPreloader(true);
-
+    async function getFullTorExitNodes(){
+        if(isHaveActualNodes()) return;
 
         let totalNodesAmount = 0;
         let offset = 0;
         const batchSize = 1000;
         let nodes = [];
 
-        async function getPartTorExitNodeList(){
-            const res = await getTorExitNodeList({
+        async function getPartTorExitNodes(){
+            const [error, res] = await getTorExitNodes({
                 batchSize,
                 offset,
             });
-    
-            nodes = nodes.concat(res.nodes);
-            totalNodesAmount = res.total;
-            offset += batchSize;
-    
-            if(nodes.length < totalNodesAmount){
-                getPartTorExitNodeList();
+
+            if(error){
+                setTorExitNodesError(`tor nodes load error: ${error.message}`)
+                throw new Error(error)
             } else {
-                setTorExitNodeList(nodes);
-                setLastRequestNodesTime(Date.now());
+                setTorExitNodesError(null)
+
+                nodes = nodes.concat(res.nodes);
+                totalNodesAmount = res.total;
+                offset += batchSize;
+        
+                if(nodes.length < totalNodesAmount){
+                    getPartTorExitNodes();
+                } else {
+                    setTorExitNodes(nodes);
+                    setLastRequestNodesTime(Date.now());
+                }
             }
         }
 
-        return await getPartTorExitNodeList();
+        return await getPartTorExitNodes();
     }
 
-    function isIpInNodeList(){
-        let result = false;
-        for(let node of torExitNodeList){
-            if(node.ip === ip){
-                result = true;
-                break;
-            } 
+    async function getMyIpWrapper(){
+        const [error, myIp] = await getMyIp();
+        if(error){
+            setMyIpError(`my ip info load error: ${error.message}`)
+            throw new Error(error)
+        } else {
+            setMyIpError(null);
+
+            setMyIp(myIp);
         }
-        return result;
+    }
+
+    function isMyIpInNodeList(){
+        return !!torExitNodes.find(({ip} = {}) => ip === myIp);
     }
 
     async function handleButtonClick(){
-        getFullTorExitNodeList();
-        setIp(await getVisitopIp());
-    }
+        setIsLoading(true);
+        setResult(false);
 
-    useEffect(() => {
-        if(torExitNodeList.length && ip){
-            setIsTorBrowser(isIpInNodeList());
-            setPreloader(false);    
-        }
-    }, [torExitNodeList,ip])
-
-    useEffect(() => {
-        if(isTorBroswer !== undefined) setResult(true);
-    }, [isTorBroswer]);
+        Promise.allSettled([
+            getFullTorExitNodes(),
+            getMyIpWrapper()
+        ]).then(() => {
+            setIsTorBrowser(isMyIpInNodeList());
+            setResult(true);
+        }).catch(error => {
+            console.log('error',error)
+            setResult(false);
+        }).finally(() => {
+            setIsLoading(false);    
+        })
+    };
 
     return (
         <SectionStyled>
             <Block>
-                <Result>{result && (`Вы зашли на страницу ${isTorBroswer ? '' : 'НЕ'} через Tor browser`)}</Result>
+                <Result>{result && (`Вы зашли на страницу ${isTorBrowser ? '' : 'НЕ'} через Tor browser`)}</Result>
                 <Button onClick={handleButtonClick}>Нажми меня</Button>
+                <ErrorsBlock>
+                    {myIpError && <Error>{myIpError}</Error>}
+                    {torExitNodesError && <Error>{torExitNodesError}</Error>}
+                </ErrorsBlock>
             </Block>
 
-            {preloader && <Preloader />}
+            {isLoading && <LoadingIndicator />}
         </SectionStyled>
     )
 }
