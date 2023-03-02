@@ -48,7 +48,7 @@ export default function HomePage(){
     }
 
     async function getFullTorExitNodes(){
-        if(isHaveActualNodes()) return;
+        if(isHaveActualNodes()) return torExitNodes;
 
         let totalNodesAmount = 0;
         let offset = 0;
@@ -72,10 +72,11 @@ export default function HomePage(){
                 offset += batchSize;
         
                 if(nodes.length < totalNodesAmount){
-                    getPartTorExitNodes();
+                    return await getPartTorExitNodes();
                 } else {
                     setTorExitNodes(nodes);
                     setLastRequestNodesTime(Date.now());
+                    return nodes;
                 }
             }
         }
@@ -95,8 +96,8 @@ export default function HomePage(){
         }
     }
 
-    function isMyIpInNodeList(){
-        return !!torExitNodes.find(({ip} = {}) => ip === myIp);
+    function isMyIpInNodeList(nodes){
+        return !!nodes.find(({ip} = {}) => ip === myIp);
     }
 
     async function handleButtonClick(){
@@ -106,8 +107,8 @@ export default function HomePage(){
         Promise.allSettled([
             getFullTorExitNodes(),
             getMyIpWrapper()
-        ]).then(() => {
-            setIsTorBrowser(isMyIpInNodeList());
+        ]).then((res) => {
+            setIsTorBrowser(isMyIpInNodeList(res[0].value));
             setResult(true);
         }).catch(error => {
             console.log('error',error)
